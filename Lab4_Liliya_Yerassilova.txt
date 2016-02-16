@@ -12,15 +12,15 @@ WHERE aid in (SELECT aid
 
 --2. Get the ids of products ordered through any agent who takes at least one order from a customer in Dallas, sorted by pid from highest to lowest. (This is not the same as asking for ids of products ordered by customers in Dallas.)
 
-SELECT pid
-FROM orders
-WHERE aid in (SELECT aid
-              FROM agents
-              WHERE city in (SELECT city
-                             FROM customers
-                             WHERE city = 'Dallas'
-                             )
-              )
+SELECT distinct pid 
+FROM orders 
+WHERE aid in (SELECT aid 
+              FROM orders 
+              WHERE cid in (SELECT cid 
+                            FROM customers
+                            WHERE city = 'Dallas'
+                            ) 
+             )
 GROUP BY pid
 ORDER BY count(pid) DESC;
 
