@@ -101,6 +101,23 @@ WHERE discount in (SELECT discount
                                    WHERE city in ('Dallas', 'London')
                                    );
                                    
+--Check constraints are the limitations that validate the kind of data is being entered into a record. Check
+--constraints can be anything that identify acceptable data into a column of a database. For example,
+--there can be a check constraint on days of a week that ranges from 1 till 7. This way, the data will be
+--consistent and the probability of making a mistake decreases. On the other hand, a constraint for
+--address check (in a registration database, for instance), where State has to have two characters might
+--not be a good constraint. People who come from other countries would not be able to provide state
+--names simply because not every country has states, and some countries have regions that are names
+--that cannot be abbreviated into two characters. This constraint can be very frustrating and not allow an
+--otherwise eligible person to register simply because of the constraint. Entering some two random
+--characters will mislead people and make the data inaccurate. So, check constraints can be very powerful
+--and make a database be more accurate and consistent, or, if used carelessly, bring a lot of trouble to the
+--users of the database.                                    
+                                   
+                                   
+                                   
+                                   
+                                   
 
 
 
