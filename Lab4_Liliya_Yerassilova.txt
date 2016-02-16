@@ -22,7 +22,8 @@ WHERE aid in (SELECT aid
                             ) 
              )
 GROUP BY pid
-ORDER BY count(pid) DESC;
+ORDER BY pid DESC;
+
 
 
 
