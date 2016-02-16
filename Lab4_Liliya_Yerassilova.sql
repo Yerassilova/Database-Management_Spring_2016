@@ -20,7 +20,9 @@ WHERE aid in (SELECT aid
                             FROM customers
                             WHERE city = 'Dallas'
                             ) 
-             );
+             )
+GROUP BY pid
+ORDER BY pid DESC;
 
 
 
