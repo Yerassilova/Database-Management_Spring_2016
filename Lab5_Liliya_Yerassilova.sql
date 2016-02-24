@@ -76,13 +76,16 @@ WHERE a.city = c.city;
 --different kinds of products. (Hint: Use count and group by on the Products table.)
 
 
-SELECT c.name, p1.city
-FROM   products p1,
-       products p2,
-       customers c
-WHERE  c.city = p1.city
-  AND  p1.city > p2.city
-GROUP BY p1.city, c.name;
+SELECT name, city
+FROM customers
+WHERE city IN  (SELECT city
+                FROM products
+                GROUP BY city
+                ORDER BY count(city)
+                LIMIT 1
+                );
+
+
 
 
 
