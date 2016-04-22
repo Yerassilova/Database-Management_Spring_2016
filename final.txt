@@ -1,0 +1,624 @@
+DROP TABLE IF EXISTS price;
+DROP TABLE IF EXISTS type_of_shift;
+DROP TABLE IF EXISTS shift;
+DROP VIEW IF EXISTS CarLocation;
+DROP VIEW IF EXISTS forCustomers;
+DROP VIEW IF EXISTS summary;
+DROP TABLE IF EXISTS customers_in_trips;
+DROP TABLE IF EXISTS driver_trips;
+DROP TABLE IF EXISTS trips;
+DROP TABLE IF EXISTS updated_drivers_location;
+DROP TABLE IF EXISTS locations;
+DROP TABLE IF EXISTS zip;
+DROP TABLE IF EXISTS type_of_car;
+DROP TABLE IF EXISTS drivers;
+DROP TABLE IF EXISTS customers;
+DROP TABLE IF EXISTS controller;
+DROP TABLE IF EXISTS admin_owner;
+DROP TABLE IF EXISTS people;
+
+
+-- People --
+CREATE TABLE people (
+  pid              char(5) not null unique,
+  first_name       text,
+  last_name        text,
+  DOB              date,
+  phone_num        char(15) not null,
+  primary key(pid)
+);
+
+
+-- Admin/Owner --
+CREATE TABLE admin_owner (
+  aid            char(5) not null references people(pid),
+  role_as        char(5) not null,
+  CONSTRAINT valid_role_as   CHECK (role_as = 'admin' OR role_as = 'owner' OR role_as = 'both'),
+  primary key(aid)
+);        
+
+
+-- Controller --
+CREATE TABLE controller (
+  cid                char(5) not null references people(pid),
+  works_since        DATE,
+ primary key(cid)
+);
+
+
+-- Customers -- 
+CREATE TABLE Customers (
+  clid             char(5) not null references people(pid),
+  home_zip         int not null,
+  client_since     DATE not null,
+  average_rating   float,  
+ primary key(clid)
+);
+
+
+-- Drivers--
+CREATE TABLE drivers (
+  did             char(5) not null references people(pid),
+  works_since     DATE not null,
+  Home_zip        int not null,     
+ primary key(did)
+);
+
+
+-- Type_of_Car--
+CREATE TABLE type_of_car (
+  cabid             char(5) not null unique,
+  did               char(5) not null references drivers(did),
+  model             text not null,
+  year              DATE not null,
+  description       text,       
+ primary key(cabid)
+);
+
+
+-- Locations--
+CREATE TABLE locations (
+  lid          char(5) not null unique,
+  zip          char(5) not null,
+  st_address   text not null,     
+ primary key(lid)
+);
+
+-- ZIP--
+CREATE TABLE zip (
+  zip          char(5) not null unique,
+  city         text not null,
+  state        char(2) not null,     
+ primary key(zip)
+);
+
+
+-- Updated_drivers_location--
+CREATE TABLE updated_drivers_location (
+  lid             char(5) not null references locations(lid),
+  did             char(5) not null references people(pid),
+  time_arrived    TIME with time zone not null,     
+ primary key(lid, did)
+);
+
+
+-- Trips--
+CREATE TABLE trips (
+  tid              char(5) not null unique,
+  origin_LID       char(5) not null references locations(lid),
+  miles_to_go      float not null CHECK (miles_to_go > 0.0),  
+  departure_date   DATE not null,
+  departure_time   TIME with time zone not null,   
+ primary key(tid)
+);
+
+
+-- Driver_trips--
+CREATE TABLE driver_trips (
+  tid              char(5) not null references trips(tid),
+  did              char(5) not null references drivers(did),
+  destination_LID  char(5) not null references locations(lid), 
+ primary key(tid, did)
+);
+
+
+-- Customers_in_trips--
+CREATE TABLE customers_in_trips (
+  clid              char(5) not null references customers(clid),
+  tid               char(5) not null references trips(tid),
+  wait_time_start   TIME not null,
+  ride_satisfaction float,
+ primary key(clid, tid)
+);
+
+
+-- Shift--
+CREATE TABLE shift (
+  sid          char(5) not null unique,
+  start_day    DATE not null,
+  end_day      DATE not null,
+ primary key(sid)
+);
+
+
+-- Type_of_Shift--
+CREATE TABLE type_of_shift (
+  sid                     char(5) not null references shift(sid),
+  pid                     char(5) not null references people(pid),
+  start_time              TIME not null,
+  end_time                TIME not null,
+  day_of_week             char(2) not null,
+  type_of_shift           char(1) not null,  
+  pay_rate_per_hr         MONEY not null default 20,   
+  CONSTRAINT valid_shift  CHECK(type_of_shift = 'd' OR type_of_shift = 'n' OR type_of_shift = 'e'),
+ primary key(sid)
+);
+
+
+-- Price--
+CREATE TABLE price (
+  tid                char(5) not null references trips(tid),
+  priceUSD           MONEY not null CHECK (priceUSD > 0.0::text::money),
+  discount_percent   float default 0,
+  type_of_pmt        char(7) not null,
+  CONSTRAINT valid_type_of_pmt  CHECK(type_of_pmt = 'cash' OR type_of_pmt = 'credit' OR type_of_pmt = 'debit'), 
+ primary key(tid)
+);
+
+
+
+-- SQL statements for loading example data: ---------------------------------------------------------------
+
+-- People --
+INSERT INTO people( pid, first_name, last_name, DOB, phone_num)
+  VALUES('1', 'Edgar', 'Codd', '08/25/1989', 9145488888);
+
+INSERT INTO people( pid, first_name, last_name, DOB, phone_num)
+  VALUES('2', 'Maria', 'Sharapova', '03/29/1970', 9145559999);
+
+INSERT INTO people( pid, first_name, last_name, DOB, phone_num)
+  VALUES('3', 'Sean', 'Connery', '08/25/1930', 9144596365);
+
+INSERT INTO people( pid, first_name, last_name, DOB, phone_num)
+  VALUES('4', 'Larry', 'Ellison', '09/05/1991', 9140001111);
+
+INSERT INTO people( pid, first_name, last_name, DOB, phone_num)
+  VALUES('5', 'Joanne', 'Rowling', '01/29/1985', 9145269999);
+
+INSERT INTO people( pid, first_name, last_name, DOB, phone_num)
+  VALUES('6', 'Nikola', 'Tesla', '08/16/1953', 9145452222);
+
+INSERT INTO people( pid, first_name, last_name, DOB, phone_num)
+  VALUES('7', 'Alan', 'Labouseur', '11/11/1960', 9145557777);
+
+INSERT INTO people( pid, first_name, last_name, DOB, phone_num)
+  VALUES('8', 'Harry', 'Potter', '02/02/1975', 9147777777);
+
+INSERT INTO people( pid, first_name, last_name, DOB, phone_num)
+  VALUES('9', 'Spider', 'Man', '06/09/1950', 9146626666);
+
+INSERT INTO people( pid, first_name, last_name, DOB, phone_num)
+  VALUES('10', 'Franz', 'Schubert', '07/25/1969', 9143331111);
+
+INSERT INTO people( pid, first_name, last_name, DOB, phone_num)
+  VALUES('11', 'Alexander', 'Pushkin', '10/08/1987', 9143216544);
+
+INSERT INTO people( pid, first_name, last_name, DOB, phone_num)
+  VALUES('12', 'James', 'Gosling', '01/05/1974', 9149511236);
+
+INSERT INTO people( pid, first_name, last_name, DOB, phone_num)
+  VALUES('13', 'Richard', 'Branson', '03/03/1962', 9147419512);
+
+INSERT INTO people( pid, first_name, last_name, DOB, phone_num)
+  VALUES('14', 'Willis', 'Carrier', '12/12/1966', 9147899631);
+
+
+--Admin_Owner--
+INSERT INTO admin_owner( aid, role_as)
+  VALUES('1', 'owner');
+
+INSERT INTO admin_owner( aid, role_as)
+  VALUES('2', 'admin');
+
+INSERT INTO admin_owner( aid, role_as)
+  VALUES('3', 'both');
+
+
+--Controller--
+INSERT INTO controller( cid, works_since)
+  VALUES('4', '01/03/2011');
+
+INSERT INTO controller( cid, works_since)
+  VALUES('5', '01/03/2012');
+
+INSERT INTO controller( cid, works_since)
+  VALUES('6', '01/06/2013');
+
+
+--Customers--
+INSERT INTO customers( clid, home_zip, client_since, average_rating)
+  VALUES('7', 12601, '06/07/2015', 5.0);
+
+INSERT INTO customers( clid, home_zip, client_since, average_rating)
+  VALUES('8', 12603, '08/08/2012', 4.4);
+
+INSERT INTO customers( clid, home_zip, client_since, average_rating)
+  VALUES('9', 12602, '09/01/2016', 4.8);
+
+INSERT INTO customers( clid, home_zip, client_since, average_rating)
+  VALUES('10', 12605, '02/02/2014', 4.1);
+
+
+--Drivers--
+INSERT INTO drivers( did, works_since, home_zip)
+  VALUES('11', '06/07/2015', 12601);
+
+INSERT INTO drivers( did, works_since, home_zip)
+  VALUES('12', '06/08/2009', 12602);
+
+INSERT INTO drivers( did, works_since, home_zip)
+  VALUES('13', '07/09/2010', 12603);
+
+INSERT INTO drivers( did, works_since, home_zip)
+  VALUES('14', '06/05/2009', 12601);
+
+
+--Type_of_Car--
+INSERT INTO type_of_car(cabid, did, model, year, description)
+  VALUES('A1', '11', 'Toyota', '01/01/2005', 'Fits up to 6 passengers, can fit a few medium suitcases');
+
+INSERT INTO type_of_car(cabid, did, model, year, description)
+  VALUES('A2', '12', 'Lexus', '01/01/2009', 'Fits up to 6 adults, plus up to 4 large suitcases');
+
+INSERT INTO type_of_car(cabid, did, model, year, description)
+  VALUES('A3', '13', 'Ford', '01/01/2013', 'Fits 5 adults, a few medium suitcase');
+
+INSERT INTO type_of_car(cabid, did, model, year, description)
+  VALUES('A4', '14', 'Nissan', '01/01/2014', 'Fits 5 adults, one medium or a few small bags');
+
+
+
+--Locations--
+INSERT INTO locations(lid, zip, st_address)
+  VALUES('L01', 12601, '3399 North road');
+
+INSERT INTO locations(lid, zip, st_address)
+  VALUES('L02', 12602, '33 Pine Bush street');
+
+INSERT INTO locations(lid, zip, st_address)
+  VALUES('L03', 12603, '55 Ave Maria Avenue');
+
+INSERT INTO locations(lid, zip, st_address)
+  VALUES('L04', 12604, '11 Lucky street');
+
+INSERT INTO locations(lid, zip, st_address)
+  VALUES('L05', 12605, '12 Green Square');
+
+
+--ZIP--
+INSERT INTO zip(zip, city, state)
+  VALUES(12601, 'Poughkeepsie', 'NY');
+
+INSERT INTO zip(zip, city, state)
+  VALUES(12602, 'Poughkeepsie', 'NY');
+
+INSERT INTO zip(zip, city, state)
+  VALUES(12603, 'Poughkeepsie', 'NY');
+
+INSERT INTO zip(zip, city, state)
+  VALUES(12604, 'Poughkeepsie', 'NY');
+
+INSERT INTO zip(zip, city, state)
+  VALUES(12605, 'Poughkeepsie', 'NY');
+
+
+--Updated_Drivers_Location--
+INSERT INTO updated_drivers_location(lid, did, time_arrived)
+  VALUES('L01', '11', '04:53:00');
+
+INSERT INTO updated_drivers_location(lid, did, time_arrived)
+  VALUES('L02', '12', '04:45:00');
+
+INSERT INTO updated_drivers_location(lid, did, time_arrived)
+  VALUES('L03', '13', '03:58:00');
+
+INSERT INTO updated_drivers_location(lid, did, time_arrived)
+  VALUES('L04', '14', '04:35:00');
+
+
+--Trips--
+INSERT INTO trips(tid, origin_lid, miles_to_go, departure_date, departure_time)
+  VALUES('T001', 'L02', 15, '04/19/2016', '04:42:00');
+
+INSERT INTO trips(tid, origin_lid, miles_to_go, departure_date, departure_time)
+  VALUES('T002', 'L04', 20, '04/19/2016', '04:00:00');
+
+INSERT INTO trips(tid, origin_lid, miles_to_go, departure_date, departure_time)
+  VALUES('T003', 'L05', 10, '04/19/2016', '03:43:00');
+
+INSERT INTO trips(tid, origin_lid, miles_to_go, departure_date, departure_time)
+  VALUES('T004', 'L01', 22, '04/19/2016', '03:55:00');
+
+
+--Driver_trips--
+INSERT INTO driver_trips(tid, did, destination_lid)
+  VALUES('T001', '11', 'L01');
+
+INSERT INTO driver_trips(tid, did, destination_lid)
+  VALUES('T002', '12', 'L02');
+
+INSERT INTO driver_trips(tid, did, destination_lid)
+  VALUES('T003', '13', 'L03');
+
+INSERT INTO driver_trips(tid, did, destination_lid)
+  VALUES('T004', '14', 'L04');
+
+
+--Customers_in_trips--
+INSERT INTO customers_in_trips(clid, tid, wait_time_start, ride_satisfaction)
+  VALUES('7', 'T001', '04:40:00', 4.9);
+
+INSERT INTO customers_in_trips(clid, tid, wait_time_start, ride_satisfaction)
+  VALUES('8', 'T002', '03:55:00', 4.7);
+
+INSERT INTO customers_in_trips(clid, tid, wait_time_start, ride_satisfaction)
+  VALUES('9', 'T003', '03:40:00', 5.0);
+
+INSERT INTO customers_in_trips(clid, tid, wait_time_start, ride_satisfaction)
+  VALUES('10', 'T004', '03:45:00', 4.5);
+
+
+
+--Shift--
+INSERT INTO shift(sid, start_day, end_day)
+  VALUES('S1', '04/19/2016', '04/19/2016');
+
+INSERT INTO shift(sid, start_day, end_day)
+  VALUES('S2', '04/19/2016', '04/19/2016');
+
+INSERT INTO shift(sid, start_day, end_day)
+  VALUES('S3', '04/19/2016', '04/19/2016');
+
+INSERT INTO shift(sid, start_day, end_day)
+  VALUES('S4', '04/19/2016', '04/19/2016');
+
+INSERT INTO shift(sid, start_day, end_day)
+  VALUES('S5', '04/19/2016', '04/19/2016');
+
+INSERT INTO shift(sid, start_day, end_day)
+  VALUES('S6', '04/19/2016', '04/20/2016');
+
+
+
+--Type_of_Shift--
+INSERT INTO type_of_shift(sid, pid, start_time, end_time, day_of_week, type_of_shift, pay_rate_per_hr)
+  VALUES('S1', '11', '04:00:00', '07:00:00', 'TU', 'e', 22);
+
+INSERT INTO type_of_shift(sid, pid, start_time, end_time, day_of_week, type_of_shift, pay_rate_per_hr)
+  VALUES('S2', '12', '04:00:00', '07:00:00', 'TU', 'e', 22);
+
+INSERT INTO type_of_shift(sid, pid, start_time, end_time, day_of_week, type_of_shift, pay_rate_per_hr)
+  VALUES('S3', '13', '04:00:00', '07:00:00', 'TU', 'e', 22);
+
+INSERT INTO type_of_shift(sid, pid, start_time, end_time, day_of_week, type_of_shift, pay_rate_per_hr)
+  VALUES('S4', '14', '04:00:00', '07:00:00', 'TU', 'e', 22);
+
+INSERT INTO type_of_shift(sid, pid, start_time, end_time, day_of_week, type_of_shift, pay_rate_per_hr)
+  VALUES('S5', '5', '04:00:00', '07:00:00', 'TU', 'e', 21);
+
+INSERT INTO type_of_shift(sid, pid, start_time, end_time, day_of_week, type_of_shift, pay_rate_per_hr)
+  VALUES('S6', '5', '07:00:00', '03:00:00', 'TU', 'n', 26);
+
+
+--Price--
+INSERT INTO price(tid, priceUSD, discount_percent, type_of_pmt)
+  VALUES('T001', 35, null, 'cash');
+
+INSERT INTO price(tid, priceUSD, discount_percent, type_of_pmt)
+  VALUES('T002', 45, 1.5, 'credit');
+
+INSERT INTO price(tid, priceUSD, discount_percent, type_of_pmt)
+  VALUES('T003', 20, null, 'cash');
+
+INSERT INTO price(tid, priceUSD, discount_percent, type_of_pmt)
+  VALUES('T004', 50, null, 'debit');
+
+---------------------------------------
+select *
+from price;
+----------------------------------------------------------------------------------------------------------
+----------------------------------------------------------------------------------------------------------
+
+--VIEWS--VIEWS--VIEWS--VIEWS--VIEWS--VIEWS--VIEWS--VIEWS--VIEWS--VIEWS--VIEWS--VIEWS--VIEWS--VIEWS--VIEWS--
+
+--This summary can be useful for controllers to track drivers' current location, their trips, 
+--and how long it took them to get to their destination
+
+CREATE VIEW summary AS
+SELECT t.tid, dt.did, clid, origin_LID, destination_LID, wait_time_start, departure_time, time_arrived
+FROM updated_drivers_location udl,
+     trips t,
+     driver_trips dt,
+     customers_in_trips ct
+WHERE t.tid = dt.tid
+  AND t.tid = ct.tid
+  AND udl.did = dt.did;
+
+----------------------------------------------------------------
+select *
+from summary;
+----------------------------------------------------------------
+----------------------------------------------------------------
+
+--This view is good for customers to see what drivers are around, their current locations
+
+CREATE VIEW forCustomers AS
+SELECT first_name, last_name, st_address, city, state, z.zip
+FROM people p,
+     drivers d,
+     locations l,
+     zip z,
+     updated_drivers_location udl
+WHERE p.pid = d.did
+  AND l.zip = z.zip
+  AND l.lid = udl.lid
+  AND udl.did = d.did;
+		
+-------------------------------------------------------------------
+select *
+from forCustomers;
+-------------------------------------------------------------------
+-------------------------------------------------------------------
+
+--This view is good for both controllers and customers to track current locations of specific
+--types of cars. If a customer is leaving to the airport and has a few large bags, it would be
+--more sensible to order a car not based on who is closer, but what car is larger.
+
+CREATE VIEW CarLocation AS
+SELECT cabid, model, description, l.lid, st_address, l.zip
+FROM type_of_car tc,
+     updated_drivers_location udl,
+     drivers d,
+     locations l,
+     zip z
+WHERE tc.did = d.did 
+  AND udl.did = d.did
+  AND udl.lid = l.lid
+  AND l.zip = z.zip; 
+
+-------------------------------------------------------------------
+select *
+from CarLocation;
+-------------------------------------------------------------------
+-------------------------------------------------------------------
+
+--QUERIES--QUERIES--QUERIES--QUERIES--QUERIES--QUERIES--QUERIES--QUERIES--QUERIES--QUERIES--QUERIES--QUERIES--QUERIES--
+
+
+--query to compare satisfaction of trip to waiting time and trip time
+
+SELECT ct.clid, first_name, last_name, ride_satisfaction, (((select cast(extract(hour from s.departure_time) as integer)) - (select cast(extract(hour from s.wait_time_start) as integer)))*60)-
+                                                           ((select cast(extract(minute from s.departure_time) as integer)) - (select cast(extract(minute from s.wait_time_start) as integer)))*(-1) AS Minutes_Waiting
+                                                
+FROM summary s,   
+     customers_in_trips ct,
+     people p
+WHERE s.clid = ct.clid
+  AND ct.clid = p.pid;
+
+
+
+
+--query to see who works how much and their wages
+
+
+SELECT DISTINCT p.pid, first_name, last_name, ts.pay_rate_per_hr, ABS(((((select cast(extract(hour from ts.end_time) as integer)) - (select cast(extract(hour from ts.start_time) as integer )))))
+                                                                    -((select cast(extract(minute from ts.end_time) as integer)) - (select cast(extract(minute from ts.start_time) as integer)))) as hours_worked, 
+                                                                    
+                                                                   ABS(SUM((((((select cast(extract(hour from ts.end_time) as integer)) - (select cast(extract(hour from ts.start_time) as integer)))))
+                                                                         -((select cast(extract(minute from ts.end_time) as integer)) - (select cast(extract(minute from ts.start_time) as integer)))) 
+                                                                         * (ts.pay_rate_per_hr ::money::numeric::float8)))as TotalUSD
+
+ 
+FROM people p,
+     shift s,
+     type_of_shift ts
+WHERE p.pid = ts.pid
+  AND s.sid = ts.sid
+GROUP BY p.pid, ts.pay_rate_per_hr, ts.end_time, ts.start_time;
+
+
+
+
+--query to see how much customers paid to what drivers
+
+select pr.tid, p2.first_name as CustomerName1, p2.last_name as CustomerName, priceUSD, 
+       p1.first_name as DriverName1, p1.last_name as DriverName
+from price pr,
+     driver_trips dt,
+     customers_in_trips ct,
+     people p1,
+     people p2
+where pr.tid = dt.tid
+  and pr.tid = ct.tid
+  and dt.did = p1.pid
+  and ct.clid = p2.pid;
+
+-----------------------------------------------------------------------------------------------------------------
+-----------------------------------------------------------------------------------------------------------------
+
+--STORED_PROCEDURES--STORED_PROCEDURES--STORED_PROCEDURES--STORED_PROCEDURES--STORED_PROCEDURES--STORED_PROCEDURES--STORED_PROCEDURES--
+
+--Stored procedure to see hours worked by employees
+
+create or replace function get_hours_by_pid(char(5), REFCURSOR) returns refcursor as 
+$$
+declare
+   input_pid   char(5)   := $1;
+   resultset   REFCURSOR := $2;
+begin
+   open resultset for 
+      select input_pid, first_name, last_name, start_time, end_time, day_of_week, type_of_shift, pay_rate_per_hr, ABS(SUM((((((select cast(extract(hour from ts.end_time) as integer)) - (select cast(extract(hour from ts.start_time) as integer)))))
+                                                                                                                            -((select cast(extract(minute from ts.end_time) as integer)) - (select cast(extract(minute from ts.start_time) as integer)))))) as HoursWorked
+      from   type_of_shift ts, 
+             people p             
+      where  input_pid = ts.pid
+        and  p.pid = ts.pid         
+     group by ts.pid, p.first_name, p.last_name, ts.start_time, ts.end_time, ts.day_of_week, ts.type_of_shift, ts.pay_rate_per_hr;
+   return resultset;
+end;
+$$ 
+language plpgsql;
+
+select get_hours_by_pid('11', 'results');
+Fetch all from results;
+
+
+
+--Stored Procedure to where drivers went and how frequently they each get orders
+
+create or replace function get_info_by_did(char(5), REFCURSOR) returns refcursor as 
+$$
+declare
+   input_did   char(5)   := $1;
+   resultset   REFCURSOR := $2;
+begin
+   open resultset for 
+      select input_did, first_name, last_name, ABS(SUM((((((select cast(extract(hour from udl.time_arrived) as integer)) - (select cast(extract(hour from t.departure_time) as integer)))))
+                                                         -((select cast(extract(minute from udl.time_arrived) as integer)) - (select cast(extract(minute from t.departure_time) as integer)))))) as Time_Between_Orders_min
+      from   trips t, 
+             updated_drivers_location udl,
+             people p
+                         
+      where  input_did = udl.did
+        and  p.pid = udl.did   
+              
+     group by udl.did, p.first_name, p.last_name;
+   return resultset;
+end;
+$$ 
+language plpgsql;
+
+select get_info_by_did('14', 'result');
+Fetch all from result;
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
