@@ -16,6 +16,10 @@ DROP TABLE IF EXISTS customers;
 DROP TABLE IF EXISTS controller;
 DROP TABLE IF EXISTS admin_owner;
 DROP TABLE IF EXISTS people;
+DROP ROLE IF EXISTS owner;
+DROP ROLE IF EXISTS customer;
+DROP ROLE IF EXISTS driver;
+DROP ROLE IF EXISTS controller;
 
 
 -- People --
@@ -150,7 +154,7 @@ CREATE TABLE type_of_shift (
   day_of_week             char(2) not null,
   type_of_shift           char(1) not null,  
   pay_rate_per_hr         MONEY not null default 20,   
-  CONSTRAINT valid_shift  CHECK(type_of_shift = 'd' OR type_of_shift = 'n' OR type_of_shift = 'e'),
+  CONSTRAINT valid_shift  CHECK(type_of_shift = 'd' OR type_of_shift = 'n' OR type_of_shift = 'e' OR type_of_shift = 'm'),
  primary key(sid)
 );
 
@@ -386,28 +390,28 @@ INSERT INTO shift(sid, start_day, end_day)
   VALUES('S5', '04/19/2016', '04/19/2016');
 
 INSERT INTO shift(sid, start_day, end_day)
-  VALUES('S6', '04/19/2016', '04/20/2016');
+  VALUES('S6', '04/19/2016', '04/19/2016');
 
 
 
 --Type_of_Shift--
 INSERT INTO type_of_shift(sid, pid, start_time, end_time, day_of_week, type_of_shift, pay_rate_per_hr)
-  VALUES('S1', '11', '04:00:00', '07:00:00', 'TU', 'e', 22);
+  VALUES('S1', '11', '12:00:00', '06:00:00', 'TU', 'd', 22);
 
 INSERT INTO type_of_shift(sid, pid, start_time, end_time, day_of_week, type_of_shift, pay_rate_per_hr)
-  VALUES('S2', '12', '04:00:00', '07:00:00', 'TU', 'e', 22);
+  VALUES('S2', '12', '12:00:00', '06:00:00', 'TU', 'd', 22);
 
 INSERT INTO type_of_shift(sid, pid, start_time, end_time, day_of_week, type_of_shift, pay_rate_per_hr)
-  VALUES('S3', '13', '04:00:00', '07:00:00', 'TU', 'e', 22);
+  VALUES('S3', '13', '12:00:00', '06:00:00', 'TU', 'd', 22);
 
 INSERT INTO type_of_shift(sid, pid, start_time, end_time, day_of_week, type_of_shift, pay_rate_per_hr)
-  VALUES('S4', '14', '04:00:00', '07:00:00', 'TU', 'e', 22);
+  VALUES('S4', '14', '12:00:00', '06:00:00', 'TU', 'd', 22);
 
 INSERT INTO type_of_shift(sid, pid, start_time, end_time, day_of_week, type_of_shift, pay_rate_per_hr)
-  VALUES('S5', '5', '04:00:00', '07:00:00', 'TU', 'e', 21);
+  VALUES('S5', '5', '12:00:00', '06:00:00', 'TU', 'd', 21);
 
 INSERT INTO type_of_shift(sid, pid, start_time, end_time, day_of_week, type_of_shift, pay_rate_per_hr)
-  VALUES('S6', '5', '07:00:00', '03:00:00', 'TU', 'n', 26);
+  VALUES('S6', '5', '06:00:00', '11:00:00', 'TU', 'e', 26);
 
 
 --Price--
@@ -425,7 +429,55 @@ INSERT INTO price(tid, priceUSD, discount_percent, type_of_pmt)
 
 ---------------------------------------
 select *
+from people;
+
+select *
+from customers;
+
+select *
+from admin_owner;
+
+select *
+from controller;
+
+select *
+from type_of_shift;
+
+select *
+from shift;
+
+select *
+from customers_in_trips;
+
+select *
+from drivers;
+
+select *
+from type_of_car;
+
+select *
+from zip;
+
+
+select *
+from locations;
+
+
+select *
+from updated_drivers_location;
+
+
+select *
+from driver_trips;
+
+select *
+from trips;
+
+
+select *
 from price;
+
+
 ----------------------------------------------------------------------------------------------------------
 ----------------------------------------------------------------------------------------------------------
 
@@ -497,14 +549,16 @@ from CarLocation;
 
 --query to compare satisfaction of trip to waiting time and trip time
 
-SELECT ct.clid, first_name, last_name, ride_satisfaction, (((select cast(extract(hour from s.departure_time) as integer)) - (select cast(extract(hour from s.wait_time_start) as integer)))*60)-
-                                                           ((select cast(extract(minute from s.departure_time) as integer)) - (select cast(extract(minute from s.wait_time_start) as integer)))*(-1) AS Minutes_Waiting
-                                                
+SELECT ct.clid, first_name, last_name, ride_satisfaction, ABS (SUM((((((select cast(extract(hour from s.departure_time) as integer)) - (select cast(extract(hour from s.wait_time_start) as integer)))*60))))
+                                                                     - ABS(SUM(((select cast(extract(minute from s.departure_time) as integer))) - ((select cast(extract(minute from s.wait_time_start) as integer)))))) as Minutes_Waiting   
+                                                                                                                   
 FROM summary s,   
      customers_in_trips ct,
      people p
 WHERE s.clid = ct.clid
-  AND ct.clid = p.pid;
+  AND ct.clid = p.pid
+GROUP BY ct.clid, first_name, last_name, ride_satisfaction
+ORDER BY ct.clid DESC;
 
 
 
@@ -512,8 +566,9 @@ WHERE s.clid = ct.clid
 --query to see who works how much and their wages
 
 
-SELECT DISTINCT p.pid, first_name, last_name, ts.pay_rate_per_hr, ABS(((((select cast(extract(hour from ts.end_time) as integer)) - (select cast(extract(hour from ts.start_time) as integer )))))
-                                                                    -((select cast(extract(minute from ts.end_time) as integer)) - (select cast(extract(minute from ts.start_time) as integer)))) as hours_worked, 
+SELECT DISTINCT p.pid, first_name, last_name, ts.pay_rate_per_hr,  ABS (SUM((((((select cast(extract(hour from ts.end_time) as integer)) - (select cast(extract(hour from ts.start_time) as integer)))))))
+                                                                     - ABS(SUM(((select cast(extract(minute from ts.end_time) as integer))) - ((select cast(extract(minute from ts.start_time) as integer))))/60)) as Hours_Worked,   
+ 
                                                                     
                                                                    ABS(SUM((((((select cast(extract(hour from ts.end_time) as integer)) - (select cast(extract(hour from ts.start_time) as integer)))))
                                                                          -((select cast(extract(minute from ts.end_time) as integer)) - (select cast(extract(minute from ts.start_time) as integer)))) 
@@ -558,8 +613,9 @@ declare
    resultset   REFCURSOR := $2;
 begin
    open resultset for 
-      select input_pid, first_name, last_name, start_time, end_time, day_of_week, type_of_shift, pay_rate_per_hr, ABS(SUM((((((select cast(extract(hour from ts.end_time) as integer)) - (select cast(extract(hour from ts.start_time) as integer)))))
-                                                                                                                            -((select cast(extract(minute from ts.end_time) as integer)) - (select cast(extract(minute from ts.start_time) as integer)))))) as HoursWorked
+      select input_pid, first_name, last_name, start_time, end_time, day_of_week, type_of_shift, pay_rate_per_hr, ABS (SUM((((((select cast(extract(hour from ts.end_time) as integer)) - (select cast(extract(hour from ts.start_time) as integer)))))))
+                                                                                                                    - ABS(SUM(((select cast(extract(minute from ts.end_time) as integer))) - ((select cast(extract(minute from ts.start_time) as integer))))/60)) as HoursWorked
+                                                          
       from   type_of_shift ts, 
              people p             
       where  input_pid = ts.pid
@@ -575,48 +631,124 @@ Fetch all from results;
 
 
 
---Stored Procedure to where drivers went and how frequently they each get orders
+--Stored Procedure to see how long each driver takes for certain mileage trips
 
-create or replace function get_info_by_did(char(5), REFCURSOR) returns refcursor as 
+create or replace function get_time_by_did(char(5), REFCURSOR) returns refcursor as 
 $$
 declare
    input_did   char(5)   := $1;
    resultset   REFCURSOR := $2;
 begin
    open resultset for 
-      select input_did, first_name, last_name, ABS(SUM((((((select cast(extract(hour from udl.time_arrived) as integer)) - (select cast(extract(hour from t.departure_time) as integer)))))
-                                                         -((select cast(extract(minute from udl.time_arrived) as integer)) - (select cast(extract(minute from t.departure_time) as integer)))))) as Time_Between_Orders_min
-      from   trips t, 
+      select input_did, dt.tid, first_name, last_name, miles_to_go, ABS (SUM((((((select cast(extract(hour from udl.time_arrived) as integer)) - (select cast(extract(hour from t.departure_time) as integer))))*60)))
+                                                         - ABS(SUM(((select cast(extract(minute from udl.time_arrived) as integer))) - ((select cast(extract(minute from t.departure_time) as integer)))))) as Length_of_Trip
+      from   trips t,
              updated_drivers_location udl,
-             people p
+             people p,
+             driver_trips dt
+             
                          
       where  input_did = udl.did
-        and  p.pid = udl.did   
+        and  p.pid = udl.did
+        and t.tid = dt.tid
+        and udl.did = dt.did
+          
               
-     group by udl.did, p.first_name, p.last_name;
+     group by dt.tid, p.first_name, p.last_name, miles_to_go;
    return resultset;
 end;
 $$ 
 language plpgsql;
 
-select get_info_by_did('14', 'result');
+select get_time_by_did('11', 'result');
 Fetch all from result;
 
+------------------------------------------------------------------------
+------------------------------------------------------------------------
+--TRIGGERS--TRIGGERS--TRIGGERS--TRIGGERS--TRIGGERS--TRIGGERS--TRIGGERS--TRIGGERS--
+--TRIGGERS--TRIGGERS--TRIGGERS--TRIGGERS--TRIGGERS--TRIGGERS--TRIGGERS--TRIGGERS--
+
+--Trigger to prevent inutting more than 8 hours of work per 
+--24 hr-period as well as more than 8 hrs at a time
+
+CREATE OR REPLACE FUNCTION hour_limit_trigger() RETURNS trigger as 
+$$
+BEGIN
+
+ IF ABS (SUM((((((select cast(extract(hour from type_of_shift.end_time) as integer)) - (select cast(extract(hour from type_of_shift.start_time) as integer)))))))
+      - ABS(SUM(((select cast(extract(minute from type_of_shift.end_time) as integer))) - ((select cast(extract(minute from type_of_shift.start_time) as integer))))/60)) > 8 
+  FROM type_of_shift
+  THEN
+  RAISE EXCEPTION 'Cannot input more than 8 hours!';
+  END IF;
+  RETURN NEW;
+END;
+$$ language plpgsql;
+
+
+CREATE TRIGGER hour_limit
+AFTER INSERT 
+ON type_of_shift 
+FOR each row
+execute procedure hour_limit_trigger();
 
 
 
 
+INSERT INTO shift (sid, start_day, end_day)
+            VALUES ('s7', '04/19/2016','04/19/2016'); 
+
+INSERT INTO type_of_shift (sid, pid, start_time, end_time, day_of_week, type_of_shift, pay_rate_per_hr)
+            VALUES ('s7', '2', '10:00:00', '07:00:00', 'WE', 'n', 26); 
 
 
+--------------------------------------------------------------------------------------------------------------------------------------------------------
+--------------------------------------------------------------------------------------------------------------------------------------------------------
+--SECURITY--SECURITY--SECURITY--SECURITY--SECURITY--SECURITY--SECURITY--SECURITY--SECURITY--SECURITY--SECURITY--SECURITY--SECURITY--SECURITY--SECURITY--SECURITY--SECURITY
 
+--OWNER
+CREATE ROLE owner;
+GRANT ALL ON ALL TABLES
+IN SCHEMA PUBLIC
+TO owner;
 
+--Controllers---------------------------------------------------
+CREATE ROLE controller;
+GRANT SELECT ON shift, type_of_shift, customers, drivers,
+                driver_trips, locations, zip, price, customers_in_trips, 
+                type_of_car, updated_drivers_location
+TO controller;
+--    --   --   --   --   --   --   --   --   --   --   --   --   --
+GRANT INSERT ON shift, type_of_shift, customers, drivers, price,
+                drivers, driver_trips, customers_in_trips, locations, zip
+TO controller;
+--   --    --   --   --   --   --   --   --   --   --   --   --   --    
+GRANT UPDATE ON locations, zip, updated_drivers_location, driver_trips, 
+                customers_in_trips
+TO controller;
+--    --   --   --   --   --   --   --   --   --   --   --   --   --
+--Drivers
+CREATE ROLE driver;
+GRANT SELECT ON shift, type_of_shift, customers, drivers,
+                driver_trips, locations, zip, price, customers_in_trips, 
+                type_of_car, updated_drivers_location
+TO driver;
+--    --   --   --   --   --   --   --   --   --   --   --   --   --
+GRANT INSERT ON shift, type_of_shift, customers, drivers, price,
+                drivers, driver_trips
+TO driver;
+--    --   --   --   --   --   --   --   --   --   --   --   --   --
+GRANT UPDATE ON updated_drivers_location, driver_trips              
+TO driver;
+--    --   --   --   --   --   --   --   --   --   --   --   --   --
+--Customers
+CREATE ROLE customer;
 
+REVOKE SELECT ON ALL TABLES IN SCHEMA PUBLIC
+FROM customer;
 
-
-
-
-
-
+GRANT INSERT, UPDATE ON customers, customers_in_trips 
+TO customer;
 
 
 
