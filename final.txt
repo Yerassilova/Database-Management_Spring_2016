@@ -751,6 +751,3 @@ GRANT INSERT, UPDATE ON customers, customers_in_trips
 TO customer;
 
 
-
-
-
